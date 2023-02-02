@@ -11,8 +11,6 @@ from typing import Dict, Union
 
 import numpy as np
 from numpy import bool_, int64, ndarray
-import torch
-import torch.nn.functional as F
 
 import habitat
 from habitat.config.default import get_config
@@ -29,34 +27,30 @@ class RandomAgent(habitat.Agent):
         pass
 
     def is_goal_reached(self, observations: Observations) -> bool_:
-        dist = observations[0][self.goal_sensor_uuid]
+        dist = observations[self.goal_sensor_uuid][0]
         return dist <= self.dist_threshold_to_stop
 
     def act(self, observations: Observations) -> Dict[str, int64]:
         if self.is_goal_reached(observations):
             action = HabitatSimActions.STOP
         else:
-            actions = []
-            for _ in range(len(observations)):
-                action = [[int(np.random.choice(
-                    [
+            action = np.random.choice(
+                [
                     HabitatSimActions.MOVE_FORWARD,
                     HabitatSimActions.TURN_LEFT,
                     HabitatSimActions.TURN_RIGHT,
-                    ]
-                ))]]
-                actions += action
-        return torch.tensor(actions).to("cuda:0")
+                ]
+            )
+        return {"action": action}
 
 
 class ForwardOnlyAgent(RandomAgent):
-    pass
-    # def act(self, observations: Observations) -> Dict[str, int]:
-    #     if self.is_goal_reached(observations):
-    #         action = HabitatSimActions.STOP
-    #     else:
-    #         action = HabitatSimActions.MOVE_FORWARD
-    #     return {"action": action}
+    def act(self, observations: Observations) -> Dict[str, int]:
+        if self.is_goal_reached(observations):
+            action = HabitatSimActions.STOP
+        else:
+            action = HabitatSimActions.MOVE_FORWARD
+        return {"action": action}
 
 
 class RandomForwardAgent(RandomAgent):

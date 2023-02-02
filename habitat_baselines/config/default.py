@@ -141,7 +141,7 @@ _C.RL.PPO.gamma = 0.99
 _C.RL.PPO.tau = 0.95
 _C.RL.PPO.reward_window_size = 50
 _C.RL.PPO.use_normalized_advantage = False
-_C.RL.PPO.hidden_size = 128
+_C.RL.PPO.hidden_size = 512
 # Use double buffered sampling, typically helps
 # when environment time is similar or large than
 # policy inference time during rollout generation
@@ -155,7 +155,7 @@ _C.RL.DDPPO.sync_frac = 0.6
 _C.RL.DDPPO.distrib_backend = "GLOO"
 _C.RL.DDPPO.rnn_type = "GRU"
 _C.RL.DDPPO.num_recurrent_layers = 1
-_C.RL.DDPPO.backbone = "resnet50"
+_C.RL.DDPPO.backbone = "resnet18"
 _C.RL.DDPPO.pretrained_weights = "data/ddppo-models/gibson-2plus-resnet50.pth"
 # Loads pretrained weights
 _C.RL.DDPPO.pretrained = False
@@ -167,9 +167,6 @@ _C.RL.DDPPO.train_encoder = True
 _C.RL.DDPPO.reset_critic = True
 # Forces distributed mode for testing
 _C.RL.DDPPO.force_distributed = False
-# Transformer memory size
-_C.RL.DDPPO.transformer_memory_size = 64
-_C.RL.DDPPO.pos_loss_fraction = 0.01
 # -----------------------------------------------------------------------------
 # ORBSLAM2 BASELINE
 # -----------------------------------------------------------------------------

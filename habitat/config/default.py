@@ -111,11 +111,6 @@ _C.TASK.OBJECTGOAL_SENSOR.GOAL_SPEC_MAX_VAL = 50
 _C.TASK.IMAGEGOAL_SENSOR = CN()
 _C.TASK.IMAGEGOAL_SENSOR.TYPE = "ImageGoalSensor"
 # -----------------------------------------------------------------------------
-# CROWD SENSOR
-# -----------------------------------------------------------------------------
-_C.TASK.CROWD_SENSOR = CN()
-_C.TASK.CROWD_SENSOR.TYPE = "CrowdSensor"
-# -----------------------------------------------------------------------------
 # HEADING SENSOR
 # -----------------------------------------------------------------------------
 _C.TASK.HEADING_SENSOR = CN()

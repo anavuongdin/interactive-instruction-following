@@ -3,10 +3,7 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
-import os
-import json
 
-from ast import Num
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -24,8 +21,8 @@ import numpy as np
 from gym import spaces
 from gym.spaces.box import Box
 
-# if TYPE_CHECKING:
-from torch import Tensor
+if TYPE_CHECKING:
+    from torch import Tensor
 
 import habitat_sim
 from habitat.core.dataset import Episode
@@ -44,7 +41,6 @@ from habitat.core.simulator import (
     VisualObservation,
 )
 from habitat.core.spaces import Space
-from habitat.sims.habitat_simulator.human_trajectory import EllipseTrajectory
 
 
 def overwrite_config(
@@ -86,70 +82,6 @@ def overwrite_config(
                     If not the version of Habitat Sim may not be compatible with Habitat Lab version: {config_from}
                     """
                 )
-
-def extract_scene_id(scene_path: str):
-    return scene_path.split("/")[-1].split(".")[0], scene_path.split("/")[-3]
-
-
-class BotConfig:
-    def __init__(self, **kwargs):
-        self.bot_config_path = kwargs["bot_config_path"]
-        self.scene_id = kwargs["scene_id"]
-        self.prefix = kwargs["prefix"]
-        self.default_number_of_bots = kwargs["default_number_of_bots"]
-        self.default_bot_trajectory = kwargs["default_bot_trajectory"]
-        self.config = None
-        self._set_up_bot_trajectory()
-    
-    @staticmethod
-    def add_suffix(file: str):
-        return file + ".json"
-
-    def get_bot_position(self):
-        return self._get_property("position")
-    
-    def get_number_of_bots(self):
-        try:
-            return self._get_property("number_of_bots")
-        except:
-            return self.default_number_of_bots
-    
-    def _set_up_bot_trajectory(self):
-        bot_trajectory_config = None
-        try:
-            bot_trajectory_config = self._get_property("bot_trajectory")
-        except:
-            bot_trajectory_config = [self.default_bot_trajectory for i in range(self.default_number_of_bots)]
-        
-        self.num_bots = self.get_number_of_bots()
-        self.bot_trajectory = [None for _ in range(self.num_bots)]
-        for i in range(self.num_bots):
-            # Semi lengths, centers, initial angle and angular velocity
-            a, b, c, d, alpha, omega = bot_trajectory_config[i]
-            try:
-                c, d = self.get_bot_position()[i][0], self.get_bot_position()[i][2]
-            except:
-                pass
-            self.bot_trajectory[i] = EllipseTrajectory((a, b), (c, d), alpha, omega)
-    
-    def get_linear_vel(self, t):
-        return [self.bot_trajectory[i].get_linear_vel(t) for i in range(self.num_bots)]
-    
-    def get_self_rotation_vel(self, t):
-        return [self.bot_trajectory[i].get_self_rotation_vel(t) for i in range(self.num_bots)]
-    
-    def _get_property(self, property=None):
-        scene_config = BotConfig.add_suffix(self.scene_id)
-        if self.config != None:
-            return self.config[property]
-        try:
-            with open(os.path.join(self.bot_config_path, self.prefix, scene_config)) as f:
-                self.config = json.load(f)
-                return self.config[property]        
-        except:
-            raise("Invalid scene: {}, maybe the scene has not been configured properly.".format(self.scene_id))
-            exit()
-
 
 
 class HabitatSimSensor:
@@ -324,70 +256,10 @@ class HabitatSim(habitat_sim.Simulator, Simulator):
         config: configuration for initializing the simulator.
     """
 
-    def _initialize_bots(self):
-        self.rigid_obj_mgr = self.get_rigid_object_manager()
-        self.obj_templates_mgr = self.get_object_template_manager()
-
-        # Initialize settings for bots
-        self.default_num_bots = self.habitat_config.NUMBER_OF_BOTS
-        self.bot_template_id = [None for _ in range(self.default_num_bots)]
-        self.bot_obj = [None for _ in range(self.default_num_bots)]
-        self.vel_control = [None for _ in range(self.default_num_bots)]
-        self.starting_point = [None for _ in range(self.default_num_bots)]
-
-        # Initialize configurations for bots
-        scene_id, prefix = extract_scene_id(self.habitat_config.SCENE)
-        self.bot_config = BotConfig(bot_config_path=self.habitat_config.BOT_CONFIG_PATH, 
-                               scene_id=scene_id, prefix=prefix, default_number_of_bots=self.default_num_bots,
-                               default_bot_trajectory=self.habitat_config.BOT_TRAJECTORY)
-        bot_position = self.bot_config.get_bot_position()
-        num_bots = self.bot_config.get_number_of_bots()
-
-        for idx in range(num_bots):
-            # Initialize for each bot
-            self.bot_template_id[idx] = self.obj_templates_mgr.load_configs(
-                self.habitat_config.BOT_PATH + str(idx)
-            )[0]
-            self.bot_obj[idx] = self.rigid_obj_mgr.add_object_by_template_id(self.bot_template_id[idx])
-            self.bot_obj[idx].motion_type = habitat_sim.physics.MotionType.DYNAMIC
-            self.vel_control[idx] = self.bot_obj[idx].velocity_control
-            self.vel_control[idx].controlling_lin_vel = True
-            self.vel_control[idx].controlling_ang_vel = True
-            self.starting_point[idx] = bot_position[idx]
-            self.bot_obj[idx].translation = bot_position[idx]
-
-        self._update_bot_vel(reset=True)
-        del bot_position
-    
-    def _reset_position(self):
-        for idx in range(self.bot_config.num_bots):
-            self.bot_obj[idx].translation = self.starting_point[idx]
-        
-        self._update_bot_vel(reset=True)
-
-    def _update_bot_vel(self, reset=False):
-        if reset:
-            self.counter = 0
-
-        self.counter += 1
-        current_linear_vel = self.bot_config.get_linear_vel(self.counter)
-        current_angular_vel = self.bot_config.get_self_rotation_vel(self.counter)
-        for idx in range(self.bot_config.num_bots):
-            self.vel_control[idx].linear_velocity = current_linear_vel[idx]
-            self.vel_control[idx].angular_velocity = current_angular_vel[idx]
-
-    def _destroy_bots(self):
-        del self.rigid_obj_mgr
-        del self.obj_templates_mgr
-        del self.bot_template_id
-        del self.bot_obj
-        del self.vel_control
-        del self.bot_config
-        del self.starting_point
-
     def __init__(self, config: Config) -> None:
         self.habitat_config = config
         agent_config = self._get_agent_config()
+
         sim_sensors = []
         for sensor_name in agent_config.SENSORS:
             sensor_cfg = getattr(self.habitat_config, sensor_name)
@@ -411,7 +283,6 @@ class HabitatSim(habitat_sim.Simulator, Simulator):
             len(self.sim_config.agents[0].action_space)
         )
         self._prev_sim_obs: Optional[Observations] = None
-        self._initialize_bots()
 
     def create_sim_config(
         self, _sensor_suite: SensorSuite
@@ -508,26 +379,9 @@ class HabitatSim(habitat_sim.Simulator, Simulator):
                 is_updated = True
 
         return is_updated
-    
-    def _get_current_bot_locations(self):
-        try:
-            if self.bot_obj is not None:
-                return np.array([self.bot_obj[idx].translation for idx in range(self.bot_config.num_bots)])
-        except:
-            return np.ones((self.bot_config.num_bots,3))
-    
-    def _get_relative_bot_locations(self):
-        absolute_bot_locations = self._get_current_bot_locations()
-        relative_bot_locations = absolute_bot_locations - self.agents[0].get_state().position
-        if absolute_bot_locations.shape[0] != self.default_num_bots:
-            missing_length = self.default_num_bots - absolute_bot_locations.shape[0]
-            relative_bot_locations = np.append(relative_bot_locations, np.zeros((missing_length, 3)), axis=0)
-        
-        return relative_bot_locations
 
     def reset(self) -> Observations:
         sim_obs = super().reset()
-        self._reset_position()
         if self._update_agents_state():
             sim_obs = self.get_sensor_observations()
 
@@ -537,8 +391,6 @@ class HabitatSim(habitat_sim.Simulator, Simulator):
     def step(self, action: Union[str, np.ndarray, int]) -> Observations:
         sim_obs = super().step(action)
         self._prev_sim_obs = sim_obs
-        self._update_bot_vel()
-        
         observations = self._sensor_suite.get_observations(sim_obs)
         return observations
 
@@ -569,12 +421,10 @@ class HabitatSim(habitat_sim.Simulator, Simulator):
         self.habitat_config = habitat_config
         self.sim_config = self.create_sim_config(self._sensor_suite)
         if not is_same_scene:
-            self._destroy_bots()
             self._current_scene = habitat_config.SCENE
             self.close()
             super().reconfigure(self.sim_config)
-            self._initialize_bots()
-        
+
         self._update_agents_state()
 
     def geodesic_distance(
@@ -780,10 +630,4 @@ class HabitatSim(habitat_sim.Simulator, Simulator):
             will _always_ be false after :meth:`reset` or :meth:`get_observations_at` as neither of those
             result in an action (step) being taken.
         """
-        # return self._prev_sim_obs.get("collided", False)
-        return self._is_collided_with_bots()
-    
-    def _is_collided_with_bots(self):
-        rel_bot_loc = self._get_relative_bot_locations()
-        dist = np.square(rel_bot_loc).sum(axis=1)
-        return dist[dist<self.habitat_config.COLLIDE_DIST].size > 0
+        return self._prev_sim_obs.get("collided", False)

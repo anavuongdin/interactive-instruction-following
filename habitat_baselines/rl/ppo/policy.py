@@ -20,6 +20,7 @@ from habitat_baselines.common.baseline_registry import baseline_registry
 from habitat_baselines.rl.models.rnn_state_encoder import (
     build_rnn_state_encoder,
 )
+from habitat_baselines.rl.models.simple_cnn import SimpleCNN
 from habitat_baselines.utils.common import CategoricalNet, GaussianNet
 
 
@@ -68,7 +69,7 @@ class Policy(nn.Module, metaclass=abc.ABCMeta):
         masks,
         deterministic=False,
     ):
-        features, rnn_hidden_states, pos_loss = self.net(
+        features, rnn_hidden_states = self.net(
             observations, rnn_hidden_states, prev_actions, masks
         )
         distribution = self.action_distribution(features)
@@ -87,7 +88,7 @@ class Policy(nn.Module, metaclass=abc.ABCMeta):
         return value, action, action_log_probs, rnn_hidden_states
 
     def get_value(self, observations, rnn_hidden_states, prev_actions, masks):
-        features, _, pos_loss = self.net(
+        features, _ = self.net(
             observations, rnn_hidden_states, prev_actions, masks
         )
         return self.critic(features)
@@ -95,7 +96,7 @@ class Policy(nn.Module, metaclass=abc.ABCMeta):
     def evaluate_actions(
         self, observations, rnn_hidden_states, prev_actions, masks, action
     ):
-        features, rnn_hidden_states, pos_loss = self.net(
+        features, rnn_hidden_states = self.net(
             observations, rnn_hidden_states, prev_actions, masks
         )
         distribution = self.action_distribution(features)
@@ -104,7 +105,7 @@ class Policy(nn.Module, metaclass=abc.ABCMeta):
         action_log_probs = distribution.log_probs(action)
         distribution_entropy = distribution.entropy()
 
-        return value, action_log_probs, distribution_entropy, rnn_hidden_states, pos_loss
+        return value, action_log_probs, distribution_entropy, rnn_hidden_states
 
     @classmethod
     @abc.abstractmethod

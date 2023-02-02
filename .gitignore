@@ -78,10 +78,6 @@ target/
 
 # exclude data from source control by default
 data
-bot_config
-checkpoints
-tb
-visualization
 
 # Mac OS-specific storage files
 .DS_Store

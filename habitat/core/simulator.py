@@ -128,21 +128,6 @@ class RGBSensor(Sensor, metaclass=abc.ABCMeta):
     def get_observation(self, *args: Any, **kwargs: Any) -> VisualObservation:
         raise NotImplementedError
 
-class CrowdSensor(Sensor, metaclass=abc.ABCMeta):
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        super().__init__(*args, **kwargs)
-
-    def _get_uuid(self, *args: Any, **kwargs: Any) -> str:
-        return "crowd"
-
-    def _get_sensor_type(self, *args: Any, **kwargs: Any) -> SensorTypes:
-        return SensorTypes.POSITION
-
-    def _get_observation_space(self, *args: Any, **kwargs: Any) -> Space:
-        raise NotImplementedError
-
-    def get_observation(self, *args: Any, **kwargs: Any) -> VisualObservation:
-        raise NotImplementedError
 
 class DepthSensor(Sensor, metaclass=abc.ABCMeta):
     def __init__(self, *args: Any, **kwargs: Any) -> None:

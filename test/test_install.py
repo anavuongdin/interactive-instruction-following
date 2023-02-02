@@ -4,4 +4,10 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-from .resnet_policy import PointNavResNetPolicy  # noqa: F401.
+import habitat
+from habitat.core.logging import logger
+
+
+def test_habitat_install():
+    r"""dummy test for testing installation"""
+    logger.info(str(habitat))

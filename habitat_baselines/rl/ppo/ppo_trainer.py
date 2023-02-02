@@ -44,7 +44,7 @@ from habitat_baselines.rl.ddppo.ddp_utils import (
     save_resume_state,
 )
 from habitat_baselines.rl.ddppo.policy import (  # noqa: F401.
-    CrowdNetPolicy,
+    PointNavResNetPolicy,
 )
 from habitat_baselines.rl.ppo import PPO
 from habitat_baselines.rl.ppo.policy import Policy
@@ -72,7 +72,7 @@ class PPOTrainer(BaseRLTrainer):
     agent: PPO
     actor_critic: Policy
 
-    def __init__(self, config=None, is_patch_attention=True, is_series_attention=True):
+    def __init__(self, config=None):
         super().__init__(config)
         self.actor_critic = None
         self.agent = None
@@ -91,8 +91,6 @@ class PPOTrainer(BaseRLTrainer):
         self.using_velocity_ctrl = (
             self.config.TASK_CONFIG.TASK.POSSIBLE_ACTIONS
         ) == ["VELOCITY_CONTROL"]
-        self.is_patch_attention = is_patch_attention 
-        self.is_series_attention = is_series_attention
 
     @property
     def obs_space(self):
@@ -137,7 +135,7 @@ class PPOTrainer(BaseRLTrainer):
         )
 
         self.actor_critic = policy.from_config(
-            self.config, observation_space, self.policy_action_space, self.is_patch_attention, self.is_series_attention
+            self.config, observation_space, self.policy_action_space
         )
         self.obs_space = observation_space
         self.actor_critic.to(self.device)
@@ -505,6 +503,7 @@ class PPOTrainer(BaseRLTrainer):
             device=self.current_episode_reward.device,
         )
         rewards = rewards.unsqueeze(1)
+
         not_done_masks = torch.tensor(
             [[not done] for done in dones],
             dtype=torch.bool,
@@ -620,6 +619,7 @@ class PPOTrainer(BaseRLTrainer):
             self.num_rollouts_done_store.set("num_done", "0")
 
         self.num_steps_done += count_steps_delta
+
         return losses
 
     @rank0_only
@@ -1030,7 +1030,7 @@ class PPOTrainer(BaseRLTrainer):
 
             rewards = torch.tensor(
                 rewards_l, dtype=torch.float, device="cpu"
-            ).unsqueeze(1)            
+            ).unsqueeze(1)
             current_episode_reward += rewards
             next_episodes = self.envs.current_episodes()
             envs_to_pause = []

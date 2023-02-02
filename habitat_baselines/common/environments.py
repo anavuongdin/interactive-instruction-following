@@ -116,15 +116,14 @@ class NavRLEnv(habitat.RLEnv):
 
     def get_reward(self, observations):
         reward = self._rl_config.SLACK_REWARD
+
         current_measure = self._env.get_metrics()[self._reward_measure_name]
 
-        reward += (self._previous_measure - current_measure) * self._rl_config.DISTANCE_WEIGHT
+        reward += self._previous_measure - current_measure
         self._previous_measure = current_measure
 
         if self._episode_success():
             reward += self._rl_config.SUCCESS_REWARD
-        if self._env.get_metrics()["collisions"]:
-            reward -= self._rl_config.COLLISION_PENALTY
 
         return reward
 

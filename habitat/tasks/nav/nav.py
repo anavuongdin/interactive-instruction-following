@@ -467,40 +467,6 @@ class EpisodicGPSSensor(Sensor):
         else:
             return agent_position.astype(np.float32)
 
-@registry.register_sensor(name="CrowdSensor")
-class CrowdSensor(Sensor):
-    cls_uuid: str = "crowd"
-
-    def _get_uuid(self, *args: Any, **kwargs: Any) -> str:
-        return self.cls_uuid
-
-    def __init__(
-        self, sim: Simulator, config: Config, *args: Any, **kwargs: Any
-    ):
-        self._sim = sim
-        self._dimensionality = 3
-        super().__init__(config=config)
-
-    def _get_uuid(self, *args: Any, **kwargs: Any) -> str:
-        return self.cls_uuid
-
-    def _get_sensor_type(self, *args: Any, **kwargs: Any):
-        return SensorTypes.TACTILE
-
-    def _get_observation_space(self, *args: Any, **kwargs: Any):
-        sensor_shape = (self._dimensionality,)
-        return spaces.Box(
-            low=np.finfo(np.float32).min,
-            high=np.finfo(np.float32).max,
-            shape=(6, 3,),
-            dtype=np.float32,
-        )
-
-    def get_observation(
-        self, observations, episode, *args: Any, **kwargs: Any
-    ):
-        return self._sim._get_relative_bot_locations()
-
 
 @registry.register_sensor
 class ProximitySensor(Sensor):
@@ -584,8 +550,7 @@ class Success(Measure):
         if (
             hasattr(task, "is_stop_called")
             and task.is_stop_called  # type: ignore
-            and distance_to_target < 2.0
-            # and distance_to_target < self._config.SUCCESS_DISTANCE
+            and distance_to_target < self._config.SUCCESS_DISTANCE
         ):
             self._metric = 1.0
         else:

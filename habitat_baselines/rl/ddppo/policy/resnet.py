@@ -10,9 +10,6 @@ from torch import Tensor
 from torch import nn as nn
 from torch.nn.modules.container import Sequential
 from torch.nn.modules.conv import Conv2d
-import numpy as np
-
-from habitat_baselines.rl.ddppo.policy.vit_models.modeling import VisionTransformer
 
 
 def conv3x3(
@@ -278,24 +275,21 @@ class ResNet(nn.Module):
         x = cast(Tensor, x)
         x = self.layer1(x)
         x = self.layer2(x)
-        attention_embeds = x.clone()
         x = self.layer3(x)
         x = self.layer4(x)
 
-        return x, attention_embeds
+        return x
 
 
 def resnet18(in_channels, base_planes, ngroups):
     model = ResNet(in_channels, base_planes, ngroups, BasicBlock, [2, 2, 2, 2])
+
     return model
 
-
-def vit50(hidden_size, in_channels: int, base_planes: int, ngroups: int):
-    model = VisionTransformer(num_classes=hidden_size, zero_head=False, img_size=128, vis=True)
-    return model
 
 def resnet50(in_channels: int, base_planes: int, ngroups: int) -> ResNet:
     model = ResNet(in_channels, base_planes, ngroups, Bottleneck, [3, 4, 6, 3])
+
     return model
 
 

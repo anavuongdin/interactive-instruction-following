@@ -288,9 +288,8 @@ class RNNStateEncoder(nn.Module):
         hidden_states = torch.where(
             masks.view(1, -1, 1), hidden_states, hidden_states.new_zeros(())
         )
-
         x, hidden_states = self.rnn(
-            x.unsqueeze(0), self.unpack_hidden(hidden_states.contiguous())
+            x.unsqueeze(0), self.unpack_hidden(hidden_states)
         )
         hidden_states = self.pack_hidden(hidden_states)
 
@@ -376,7 +375,7 @@ class LSTMStateEncoder(RNNStateEncoder):
         self, hidden_states
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         lstm_states = torch.chunk(hidden_states, 2, 0)
-        return (lstm_states[0], lstm_states[1])
+        return (lstm_states[0].contiguous(), lstm_states[1].contiguous())
 
 
 class GRUStateEncoder(RNNStateEncoder):
