@@ -107,6 +107,7 @@ class ResNetEncoder(nn.Module):
     ):
         super().__init__()
 
+        # self.is_blind = is_blind
         if "rgb" in observation_space.spaces:
             self._n_input_rgb = observation_space.spaces["rgb"].shape[2]
             spatial_size = observation_space.spaces["rgb"].shape[0] // 2
@@ -465,7 +466,6 @@ class PointNavResNetNet(Net):
             )
 
         x.append(prev_actions)
-
         out = torch.cat(x, dim=1)
         out, rnn_hidden_states = self.state_encoder(
             out, rnn_hidden_states, masks
